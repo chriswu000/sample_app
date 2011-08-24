@@ -51,6 +51,43 @@ describe UsersController do
         response.should have_selector("a", :href => "/users?page=2",
                                            :content => "Next")
       end
+
+
+      
+      it "should not have delete link for non-admin" do
+        get :index
+        response.should_not have_selector("a", :href => "/users/2",
+                                               :content => "delete")
+      end
+
+    end
+      
+    describe "for signed-in admin users" do
+      before(:each) do
+        @user = Factory(:user)
+        @user.toggle!(:admin)
+        test_sign_in(@user)
+        second = Factory(:user, :name => "Bob", :email => "another@example.com")
+        third  = Factory(:user, :name => "Ben", :email => "another@example.net")
+
+        @users = [@user, second, third]
+        30.times do
+          @users << Factory(:user, :email => Factory.next(:email))
+        end 
+      end
+
+      it "should have delete link for admin" do
+        get :index
+        response.should have_selector("a", :href => "/users/2",
+                                           :content => "delete")
+
+      end
+
+      it "should not allow admin to delete self" do
+        get :index
+        response.should_not have_selector("a", :href => "/users/1",
+                                               :content => "delete")
+      end
     end
 
 
@@ -274,20 +311,42 @@ describe UsersController do
 
     describe "for signed-in users" do
 
-      before(:each) do
-        wrong_user = Factory(:user, :email => "user@example.net")
-        test_sign_in(wrong_user) 
+
+      describe "accessing correct user info" do
+        
+        before(:each) do
+          test_sign_in(@user)
+        end
+        
+        it "should redirect 'create' request" do
+          post :create, :user => {}
+          response.should redirect_to(root_path)
+        end
+
+        it "should redirect 'new' request" do
+          get :new
+          response.should redirect_to(root_path)
+        end
+      end
+      
+      describe "accessing incorrect user info" do
+      
+        before(:each) do
+          wrong_user = Factory(:user, :email => "user@example.net")
+          test_sign_in(wrong_user) 
+        end
+
+        it "should require matching users for 'edit'" do
+          get :edit, :id => @user
+          response.should redirect_to(root_path)
+        end
+
+        it "should require matching users for 'update'" do
+          put :update, :id => @user, :user => {}
+          response.should redirect_to(root_path)
+        end
       end
 
-      it "should require matching users for 'edit'" do
-        get :edit, :id => @user
-        response.should redirect_to(root_path)
-      end
-
-      it "should require matching users for 'update'" do
-        put :update, :id => @user, :user => {}
-        response.should redirect_to(root_path)
-      end
     end
   end
 

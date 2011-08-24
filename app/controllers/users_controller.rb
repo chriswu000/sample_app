@@ -2,6 +2,7 @@ class UsersController < ApplicationController
   before_filter :authenticate, :only => [:index, :edit, :update]
   before_filter :correct_user, :only => [:edit, :update]
   before_filter :admin_user,   :only => :destroy
+  before_filter :signed_in_user, :only => [:create, :new]
 
   def new
     @user  = User.new
@@ -26,7 +27,8 @@ class UsersController < ApplicationController
       redirect_to @user
     else
       @title = "Sign up"
-      @user.password, @user.password_confirmation = ""
+      @user.password =""
+      @user.password_confirmation = ""
       render 'new'
     end
   end
@@ -68,4 +70,9 @@ class UsersController < ApplicationController
         redirect_to(root_path) unless current_user.admin?
       end
     end
+
+    def signed_in_user
+      redirect_to(root_path) if signed_in? 
+    end
+
 end
